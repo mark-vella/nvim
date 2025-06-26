@@ -17,7 +17,8 @@ return {
         'catppuccin-mocha',
         'rose-pine-main',
         'rose-pine-moon',
-        'github_dark_dimmed',
+        'github_dark_default',
+        'github_dark_high_contrast',
         {
           name = 'melange-dark',
           colorscheme = 'melange',
@@ -58,6 +59,7 @@ return {
         'catppuccin-latte',
         'rose-pine-dawn',
         'github_light_default',
+        'github_light_high_contrast',
         {
           name = 'vscode-light',
           colorscheme = 'vscode',
