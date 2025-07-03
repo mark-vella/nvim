@@ -83,7 +83,7 @@ return {
     build = 'make tiktoken', -- Only needed on MacOS/Linux for token counting
     opts = {
       -- Core chat options
-      model = 'gemini-2.5-pro-preview-06-05', -- Default Copilot Chat model (Gemini 2.5 Pro)
+      model = 'gemini-2.5-pro', -- Default Copilot Chat model (Gemini 2.5 Pro)
       agent = 'copilot', -- Default agent (GitHub Copilot)
       -- context = nil,     -- Default context (e.g., "buffer", "file:README.md", etc.)
       -- sticky = nil,      -- Sticky prompts to persist at top of each new prompt
