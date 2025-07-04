@@ -1,129 +1,98 @@
---[[
-rest.nvim Configuration & Reference
-===================================
-
-A fast, powerful and extensible HTTP client for Neovim, written in pure Lua.
-• Async HTTP via a pure-Lua curl wrapper (or HTTPie, see below)
-• Tree-sitter parsing & syntax highlighting for .http files
-• Named requests, environment/dynamic variables, Lua/JS scripting
-• Automatic cookie handling & persistent storage
-• Pre/post request hooks, SSL skip, header management
-• Winbar & lualine integration, Telescope extension
-• Response formatting via gq, logs & statistics in result pane
-
-Requirements
-------------
-• Neovim ≥ 0.10.1
-• curl or HTTPie
-• nvim-treesitter + tree-sitter-http
-
-Installation (lazy.nvim)
-------------------------
-{
-  "rest-nvim/rest.nvim",
-  dependencies = {
-    "nvim-treesitter/nvim-treesitter",
-    opts = function(_, opts)
-      opts.ensure_installed = opts.ensure_installed or {}
-      table.insert(opts.ensure_installed, "http")
-    end,
-  },
-  config = function()
-    -- see config below
-  end,
-}
-
-HTTPie Integration
-------------------
-To use HTTPie instead of curl, we declare an `httpie` client here.
-Then in your .http files add `# @client=httpie` at the top of a request block.
-
-Example:
-  # @client=httpie
-  POST http://localhost:8080/api/mcs/create
-  Authorization: Bearer {{token}}
-  Content-Type: application/json
-
-  { "foo": "bar" }
-
-]]
-
+--- Hurl.nvim Lazy.nvim plugin specification with inline documentation.
+---
+--- @module HurlPluginSpec
+--- @brief Plugin spec for jellydn/hurl.nvim
+--- @field dependencies string[] List of plugin dependencies
+--- @field ft string Filetype to trigger loading of this plugin
+--- @field opts HurlSetupOpts Options passed to require('hurl').setup()
+--- @field keys table[] Key mappings for Hurl commands
 return {
-  'rest-nvim/rest.nvim',
+  'jellydn/hurl.nvim',
   dependencies = {
+    -- UI components for popup
+    'MunifTanjim/nui.nvim',
+    -- Async helper library
+    'nvim-lua/plenary.nvim',
+    -- Tree-sitter for .hurl syntax
     'nvim-treesitter/nvim-treesitter',
-    opts = function(_, opts)
-      opts.ensure_installed = opts.ensure_installed or {}
-      table.insert(opts.ensure_installed, 'http')
-    end,
+    -- Optional: markdown renderer
+    {
+      'MeanderingProgrammer/render-markdown.nvim',
+      opts = { file_types = { 'markdown' } },
+      ft = { 'markdown' },
+    },
   },
-  config = function()
-    vim.g.rest_nvim = {
-      custom_dynamic_variables = {},
-      request = {
-        skip_ssl_verification = false,
-        hooks = {
-          encode_url = true,
-          user_agent = 'rest.nvim v' .. require('rest-nvim.api').VERSION,
-          set_content_type = true,
-        },
-      },
-      response = {
-        hooks = {
-          decode_url = true,
-          format = true,
-        },
-      },
-      clients = {
-        curl = {
-          statistics = {
-            { id = 'time_total', winbar = 'take', title = 'Time taken' },
-            { id = 'size_download', winbar = 'size', title = 'Download size' },
-          },
-          opts = {
-            set_compressed = false,
-            certificates = {},
-          },
-        },
-        httpie = {
-          cmd = { 'http' },
-          args = {
-            '--pretty=all',
-            '--print=HhBb', -- headers and body for both request and response
-            '--follow',
-            '--timeout=30',
-          },
-          statistics = {},
-          opts = {},
-        },
-      },
-      cookies = {
-        enable = true,
-        path = vim.fs.joinpath(vim.fn.stdpath 'data', 'rest-nvim.cookies'),
-      },
-      env = {
-        enable = true,
-        pattern = '.*%.env.*',
-        find = function()
-          local cfg = require 'rest-nvim.config'
-          return vim.fs.find(function(name)
-            return name:match(cfg.env.pattern)
-          end, {
-            path = vim.fn.getcwd(),
-            type = 'file',
-            limit = math.huge,
-          })
+  -- Load when editing .hurl files
+  ft = 'hurl',
+  --------------------------------------------------------------------------
+  --- Setup options for hurl.nvim
+  ---
+  --- @class HurlSetupOpts
+  --- @field debug boolean            Show debugging info (default: false)
+  --- @field show_notification boolean Show a notification on run (default: false)
+  --- @field mode '"split"|"popup"'    Display mode for responses (default: "split")
+  --- @field formatters table<string,string[]>
+  ---                                Formatter commands per filetype
+  --- @field mappings table<string,string>
+  ---                                Key mappings within response view
+  --- @field env_file string[]         Names of env files to search
+  --- @field fixture_vars table[]      Custom dynamic variables
+  --- @field fixture_vars[].name string
+  ---                                Variable name
+  --- @field fixture_vars[].callback fun():string
+  ---                                Returns the variable value
+  opts = {
+    -- Show debugging info
+    debug = false,
+    -- Show notification on each request
+    show_notification = false,
+    -- "split" or "popup"
+    mode = 'split',
+    -- External formatters by extension
+    formatters = {
+      -- JSON via jq (brew install jq)
+      json = { 'jq' },
+      -- HTML via prettier (npm install -g prettier)
+      html = { 'prettier', '--parser', 'html' },
+      -- XML via tidy-html5 (brew install tidy-html5)
+      xml = { 'tidy', '-xml', '-i', '-q' },
+    },
+    -- Mappings in the response buffer
+    mappings = {
+      close = 'q', -- Close popup/split
+      next_panel = '<C-n>', -- Next response panel
+      prev_panel = '<C-p>', -- Previous response panel
+    },
+    -- Environment file names to look for
+    env_file = { 'vars.env' },
+    -- Custom fixture variables
+    fixture_vars = {
+      {
+        name = 'random_int_number',
+        callback = function()
+          return tostring(math.random(1, 1000))
         end,
       },
-      ui = {
-        winbar = true,
-        keybinds = { prev = 'H', next = 'L' },
+      {
+        name = 'random_float_number',
+        callback = function()
+          return string.format('%.2f', math.random() * 10)
+        end,
       },
-      highlight = {
-        enable = true,
-        timeout = 750,
-      },
-      _log_level = vim.log.levels.WARN,
-    }
-  end,
+    },
+  },
+  --------------------------------------------------------------------------
+  --- Key mappings for invoking Hurl commands
+  ---
+  --- Each entry: { lhs, rhs, mode?, desc }
+  keys = {
+    { '<leader>ha', '<cmd>HurlRunner<CR>', desc = 'Run all requests' },
+    { '<leader>hh', '<cmd>HurlRunnerAt<CR>', desc = 'Run request under cursor' },
+    { '<leader>hb', '<cmd>HurlRunnerToEntry<CR>', desc = 'Run up to entry' },
+    { '<leader>hf', '<cmd>HurlRunnerToEnd<CR>', desc = 'Run from entry to end' },
+    { '<leader>ht', '<cmd>HurlToggleMode<CR>', desc = 'Toggle split/popup mode' },
+    { '<leader>hv', '<cmd>HurlVerbose<CR>', desc = 'Run in verbose mode' },
+    { '<leader>hV', '<cmd>HurlVeryVerbose<CR>', desc = 'Run in very verbose mode' },
+    { '<leader>hs', '<cmd>HurlRunner<CR>', mode = 'v', desc = 'Run selection' },
+  },
 }
