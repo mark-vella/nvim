@@ -22,13 +22,11 @@ return {
 
   { 'ellisonleao/gruvbox.nvim' },
 
-  {
-    'Mofiqul/adwaita.nvim',
-  },
+  { 'Mofiqul/adwaita.nvim' },
 
-  {
-    'xero/miasma.nvim',
-  },
+  { 'xero/miasma.nvim' },
 
   { 'miikanissi/modus-themes.nvim' },
+
+  { 'arzg/vim-colors-xcode' },
 }

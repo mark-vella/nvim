@@ -54,6 +54,10 @@ return {
           colorscheme = 'modus',
           before = [[ vim.opt.background = "dark" ]],
         },
+        {
+          name = 'xcode-dark',
+          colorscheme = 'xcodedark',
+        },
         -- Light Colorschemes
         'kanagawa-lotus',
         'catppuccin-latte',
