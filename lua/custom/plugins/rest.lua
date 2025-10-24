@@ -30,7 +30,7 @@ return {
   --- @class HurlSetupOpts
   --- @field debug boolean            Show debugging info (default: false)
   --- @field show_notification boolean Show a notification on run (default: false)
-  --- @field mode '"split"|"popup"'    Display mode for responses (default: "split")
+  --- @field mode "split" | "popup"    Display mode for responses (default: "split")
   --- @field formatters table<string,string[]>
   ---                                Formatter commands per filetype
   --- @field mappings table<string,string>
@@ -45,9 +45,9 @@ return {
     -- Show debugging info
     debug = false,
     -- Show notification on each request
-    show_notification = false,
+    show_notification = true,
     -- "split" or "popup"
-    mode = 'split',
+    mode = 'popup',
     -- External formatters by extension
     formatters = {
       -- JSON via jq (brew install jq)
