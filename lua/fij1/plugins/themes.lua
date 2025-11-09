@@ -29,4 +29,13 @@ return {
   { 'miikanissi/modus-themes.nvim' },
 
   { 'arzg/vim-colors-xcode' },
+
+  {
+    'folke/tokyonight.nvim',
+    config = function()
+      require 'tokyonight'
+
+      vim.cmd.colorscheme 'tokyonight-night'
+    end,
+  },
 }
