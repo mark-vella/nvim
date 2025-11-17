@@ -22,6 +22,7 @@ return {
                                 "gitattributes",
                                 "gitcommit",
                                 "gitignore",
+                                "go",
                                 "html",
                                 "hurl",
                                 "javascript",

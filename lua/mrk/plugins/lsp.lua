@@ -224,6 +224,11 @@ return {
                                 "docker-compose-language-service",
                                 "docker-language-server",
                                 "dockerfile-language-server",
+                                "gopls",
+                                "goimports",
+                                "gofumpt",
+                                "golines",
+                                "gomodifytags",
                         })
 
                         require("mason-tool-installer").setup({
@@ -293,6 +298,7 @@ return {
                                 javascript = { "prettier" },
                                 jsx = { "prettier" },
                                 json = { "prettier" },
+                                go = { "goimports", "gofumpt" },
                         },
                 },
         },
