@@ -3,9 +3,10 @@ vim.o.relativenumber = true
 vim.o.mouse = "a"
 vim.o.showmode = true
 
-vim.schedule(function()
-        vim.o.clipboard = "unnamedplus"
-end)
+-- Temporarily disabled system and nvim clipboard sync
+-- vim.schedule(function()
+--         vim.o.clipboard = "unnamedplus"
+-- end)
 
 -- Enable break indent
 vim.o.breakindent = true
