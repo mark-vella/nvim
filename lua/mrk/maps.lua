@@ -68,3 +68,6 @@ vim.keymap.set(
         [["+y]],
         { desc = "[y]ank selection to system clipboard" }
 )
+
+-- Open diagnostic floating window
+vim.keymap.set( "n", "<leader>e", vim.diagnostic.open_float, { desc = "show diagnostic [e]rrors for current line" })
