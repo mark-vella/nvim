@@ -140,6 +140,7 @@ return {
                                                                 })
                                                         )
                                                 end, "[T]oggle Inlay [H]ints")
+                                        map("<leader>e", vim.diagnostic.open_float, { desc = "show diagnostic [e]rrors for current line" })
                                         end
                                 end,
                         })
