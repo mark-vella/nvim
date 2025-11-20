@@ -229,6 +229,9 @@ return {
                                 "gofumpt",
                                 "golines",
                                 "gomodifytags",
+                                "gh-actions-language-server",
+                                "circleci-yaml-language-server",
+                                "yaml-language-server",
                         })
 
                         require("mason-tool-installer").setup({
