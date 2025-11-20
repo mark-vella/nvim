@@ -37,3 +37,17 @@ require("lazy").setup({
                 enabled = true,
         },
 })
+
+-- Load persisted theme
+local theme_file = vim.fn.stdpath("data") .. "/last_theme.txt"
+local f = io.open(theme_file, "r")
+
+if f then
+        local theme = f:read("*all")
+
+        f:close()
+
+        if theme and theme ~= "" then
+                pcall(vim.cmd.colorscheme, theme)
+        end
+end
