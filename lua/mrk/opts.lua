@@ -50,5 +50,8 @@ vim.o.scrolloff = 10
 -- When performing op that could fail due unsaved changes in buffer, raise dialog to confirm
 vim.o.confirm = true
 
+-- Enables 24-bit RGB color in the TUI
+vim.opt.termguicolors = true
+
 -- See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
