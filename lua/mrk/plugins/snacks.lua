@@ -135,17 +135,17 @@ return {
                         {
                                 "<leader>sf",
                                 function()
-                                        Snacks.picker.files()
+                                        Snacks.picker.git_files()
                                 end,
                                 desc = "[s]earch [f]iles",
                         },
-                        {
-                                "<leader>fg",
-                                function()
-                                        Snacks.picker.git_files()
-                                end,
-                                desc = "[f]ind [g]it Files",
-                        },
+                        -- {
+                        --         "<leader>fg",
+                        --         function()
+                        --                 Snacks.picker.git_files()
+                        --         end,
+                        --         desc = "[f]ind [g]it Files",
+                        -- },
                         -- gh
                         {
                                 "<leader>gp",
