@@ -1,11 +1,14 @@
 return {
         {
                 "folke/snacks.nvim",
-                opts = {
-                        picker = {},
-                        lazygit = {},
-                        terminal = {},
-                },
+		opts = {
+			picker = {},
+			lazygit = {},
+			git = {
+				env = { GIT_PAGER = "cat" },
+			},
+			terminal = {},
+		},
                 keys = {
                         -- LSP: Rename the variable under your cursor.
                         -- Most Language Servers support renaming across files, etc.
@@ -101,7 +104,15 @@ return {
                                 end,
                                 desc = "open terminal",
                         },
-                        -- lazygit
+                        -- git
+                        {
+                                "<leader>gb",
+                                function()
+                                        Snacks.git.blame_line({ count = 5 })
+                                end,
+                                desc = "[g]it [b]lame line",
+                                mode = { "n", "x" },
+                        },
                         {
                                 "<leader>lg",
                                 function()
