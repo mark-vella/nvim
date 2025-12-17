@@ -50,6 +50,13 @@ return {
                                 mode = { "x" },
                                 desc = "Send Visual Selection",
                         },
+                        {
+                                "<leader>an",
+                                function()
+                                        require("sidekick.nes").toggle()
+                                end,
+                                desc = "Toggle NES (Next Edit Suggestions)",
+                        },
                 },
         },
 }
