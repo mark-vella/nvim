@@ -10,18 +10,7 @@ return {
                 },
                 opts = {},
         },
-
         {
-                "briones-gabriel/darcula-solid.nvim",
-                dependencies = { "rktjmp/lush.nvim" },
-        },
-
-        {
-                "uhs-robert/oasis.nvim",
-                lazy = false,
-                priority = 1000,
-                config = function()
-                        require("oasis").setup()
-                end,
+                "Mofiqul/vscode.nvim",
         },
 }
