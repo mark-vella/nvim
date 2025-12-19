@@ -34,6 +34,10 @@ vim.keymap.set("n", "<C-l>", "<C-w><C-l>", { desc = "move focus to the right win
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv", { desc = "drag current line down" })
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv", { desc = "drag current line up" })
 
+-- Adjust indentation in visual mode
+vim.keymap.set("v", ">", ">gv", { desc = "increase [>] indentation" })
+vim.keymap.set("v", "<", "<gv", { desc = "decrease [<] indentation" })
+
 -- Joins the line below while preserving cursor position
 vim.keymap.set("n", "J", "mzJ`z", { desc = "[J]oin the line below preserving cursor pos" })
 
