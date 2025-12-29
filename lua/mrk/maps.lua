@@ -1,6 +1,11 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
+-- Toggle word wrap for markdown files
+vim.keymap.set("n", "<leader>ww", function()
+	require("mrk.utils").toggle_markdown_wrap()
+end, { desc = "toggle [w]ord [w]rap for markdown" })
+
 -- Exit to netrw in current buffer's dir
 vim.keymap.set("n", "-", "<cmd>Ex<CR>")
 
