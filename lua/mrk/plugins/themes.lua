@@ -1,5 +1,14 @@
 return {
         {
+                "mark-vella/oc.nvim",
+                lazy = false,
+                priority = 1000,
+                config = function()
+                        require("oc").setup({})
+                        vim.cmd.colorscheme("oc")
+                end,
+        },
+        {
                 "xiyaowong/transparent.nvim",
                 keys = {
                         {
@@ -9,8 +18,5 @@ return {
                         },
                 },
                 opts = {},
-        },
-        {
-                "Mofiqul/vscode.nvim",
         },
 }
