@@ -121,26 +121,29 @@ return {
                                                 })
                                         end
 
-                                        -- The following code creates a keymap to toggle inlay hints in your
-                                        -- code, if the language server you are using supports them
-                                        --
-                                        -- This may be unwanted, since they displace some of your code
-                                        if
-                                                client
-                                                and client_supports_method(
-                                                        client,
-                                                        vim.lsp.protocol.Methods.textDocument_inlayHint,
-                                                        event.buf
-                                                )
-                                        then
-                                                map("<leader>th", function()
-                                                        vim.lsp.inlay_hint.enable(
-                                                                not vim.lsp.inlay_hint.is_enabled({
-                                                                        bufnr = event.buf,
-                                                                })
-                                                        )
-                                                end, "[T]oggle Inlay [H]ints")
-                                        end
+					-- The following code creates a keymap to toggle inlay hints in your
+					-- code, if the language server you are using supports them
+					--
+					-- Inlay hints are enabled by default for supported servers
+					if
+						client
+						and client_supports_method(
+							client,
+							vim.lsp.protocol.Methods.textDocument_inlayHint,
+							event.buf
+						)
+					then
+						-- Enable inlay hints by default
+						vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
+
+						map("<leader>th", function()
+							vim.lsp.inlay_hint.enable(
+								not vim.lsp.inlay_hint.is_enabled({
+									bufnr = event.buf,
+								})
+							)
+						end, "[T]oggle Inlay [H]ints")
+					end
                                 end,
                         })
 
@@ -187,22 +190,51 @@ return {
                         --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
                         --  - settings (table): Override the default settings passed when initializing the server.
                         --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
-                        local servers = {
-                                lua_ls = {
-                                        settings = {
-                                                Lua = {
-                                                        completion = {
-                                                                callSnippet = "Replace",
-                                                        },
-                                                        diagnostics = {
-                                                                disable = {
-                                                                        "missing-fields",
-                                                                },
-                                                        },
-                                                },
-                                        },
-                                },
-                        }
+				-- Inlay hints settings for TypeScript/JavaScript
+				local ts_inlay_hints = {
+					parameterNames = {
+						enabled = "all",
+						suppressWhenArgumentMatchesName = true,
+					},
+					parameterTypes = { enabled = true },
+					variableTypes = {
+						enabled = true,
+						suppressWhenTypeMatchesName = true,
+					},
+					propertyDeclarationTypes = { enabled = true },
+					functionLikeReturnTypes = { enabled = true },
+					enumMemberValues = { enabled = true },
+				}
+
+				-- Configure vtsls with inlay hints using vim.lsp.config (Neovim 0.11+)
+				vim.lsp.config("vtsls", {
+					settings = {
+						typescript = {
+							inlayHints = ts_inlay_hints,
+						},
+						javascript = {
+							inlayHints = ts_inlay_hints,
+						},
+					},
+				})
+
+				local servers = {
+					lua_ls = {
+						settings = {
+							Lua = {
+								completion = {
+									callSnippet = "Replace",
+								},
+								diagnostics = {
+									disable = {
+										"missing-fields",
+									},
+								},
+							},
+						},
+					},
+					vtsls = {},
+				}
 
                         -- Ensure the servers and tools above are installed
                         --
