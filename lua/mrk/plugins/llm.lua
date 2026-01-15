@@ -57,7 +57,6 @@ return {
                                 --- /foo/AGENT.md
                                 --- assuming that /foo is project root (based on cwd)
                                 md_files = {
-                                        "AGENT.md",
                                         "AGENTS.md",
                                 },
                         })
