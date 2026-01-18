@@ -15,6 +15,13 @@ return {
                                                 size = 0.75,
                                         },
                                 },
+                                tools = {
+                                        opencode = {
+                                                env = {
+                                                        OPENCODE_EXPERIMENTAL = "1",
+                                                },
+                                        },
+                                },
                         },
                 },
                 keys = {
