@@ -9,6 +9,9 @@ return {
                 end,
         },
         {
+                "nickkadutskyi/jb.nvim",
+        },
+        {
                 "xiyaowong/transparent.nvim",
                 keys = {
                         {
