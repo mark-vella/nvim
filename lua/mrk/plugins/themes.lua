@@ -1,15 +1,10 @@
 return {
         {
                 "mark-vella/oc.nvim",
-                lazy = false,
-                priority = 1000,
-                config = function()
-                        require("oc").setup({})
-                        vim.cmd.colorscheme("oc")
-                end,
         },
         {
-                "nickkadutskyi/jb.nvim",
+                "rose-pine/neovim",
+                name = "rose-pine",
         },
         {
                 "xiyaowong/transparent.nvim",
