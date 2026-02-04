@@ -7,6 +7,9 @@ return {
                 name = "rose-pine",
         },
         {
+                "catppuccin/nvim",
+        },
+        {
                 "xiyaowong/transparent.nvim",
                 keys = {
                         {
