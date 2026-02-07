@@ -3,6 +3,15 @@ return {
                 "mark-vella/oc.nvim",
         },
         {
+                "miikanissi/modus-themes.nvim",
+        },
+        {
+                "nyoom-engineering/oxocarbon.nvim",
+        },
+        {
+                "zootedb0t/citruszest.nvim",
+        },
+        {
                 "rose-pine/neovim",
                 name = "rose-pine",
         },
