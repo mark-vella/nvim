@@ -3,7 +3,7 @@ vim.g.maplocalleader = " "
 
 -- Toggle word wrap for markdown files
 vim.keymap.set("n", "<leader>ww", function()
-	require("mrk.utils").toggle_markdown_wrap()
+        require("mrk.utils").toggle_markdown_wrap()
 end, { desc = "toggle [w]ord [w]rap for markdown" })
 
 -- Exit to netrw in current buffer's dir
@@ -13,12 +13,9 @@ vim.keymap.set("n", "-", "<cmd>Ex<CR>")
 vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
 -- Open diagnostic quickfix list
-vim.keymap.set(
-        "n",
-        "<leader>q",
-        vim.diagnostic.setloclist,
-        { desc = "open diagnostic [q]uickfix list" }
-)
+vim.keymap.set("n", "<leader>q", function()
+        vim.diagnostic.setloclist()
+end, { desc = "open diagnostic [q]uickfix list" })
 
 -- Exit terminal mode in built-in terminal
 vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "exit terminal mode" })
@@ -79,4 +76,6 @@ vim.keymap.set(
 )
 
 -- Open diagnostic floating window
-vim.keymap.set( "n", "<leader>e", vim.diagnostic.open_float, { desc = "show diagnostic [e]rrors for current line" })
+vim.keymap.set("n", "<leader>e", function()
+        vim.diagnostic.open_float()
+end, { desc = "show diagnostic [e]rrors for current line" })

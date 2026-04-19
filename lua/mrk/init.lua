@@ -2,6 +2,21 @@ require("mrk.opts")
 require("mrk.maps")
 require("mrk.autos")
 
+local theme_file = vim.fn.stdpath("data") .. "/last_theme.txt"
+local active_theme
+local f = io.open(theme_file, "r")
+
+if f then
+        active_theme = vim.trim(f:read("*all") or "")
+        f:close()
+
+        if active_theme == "" then
+                active_theme = nil
+        end
+end
+
+vim.g.mrk_active_theme = active_theme
+
 -- Install `lazy.nvim` package manager
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 
@@ -39,16 +54,6 @@ require("lazy").setup({
         },
 })
 
--- Load persisted theme
-local theme_file = vim.fn.stdpath("data") .. "/last_theme.txt"
-local f = io.open(theme_file, "r")
-
-if f then
-        local theme = f:read("*all")
-
-        f:close()
-
-        if theme and theme ~= "" then
-                pcall(vim.cmd.colorscheme, theme)
-        end
+if active_theme and vim.g.colors_name ~= active_theme then
+        pcall(vim.cmd.colorscheme, active_theme)
 end

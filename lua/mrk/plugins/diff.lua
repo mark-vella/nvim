@@ -1,8 +1,14 @@
 return {
         "sindrets/diffview.nvim",
         version = "*",
-        lazy = true,
-        event = { "BufReadPost", "BufNewFile" },
+        cmd = {
+                "DiffviewOpen",
+                "DiffviewFileHistory",
+                "DiffviewClose",
+                "DiffviewFocusFiles",
+                "DiffviewToggleFiles",
+                "DiffviewRefresh",
+        },
         dependencies = {
                 "nvim-lua/plenary.nvim",
         },

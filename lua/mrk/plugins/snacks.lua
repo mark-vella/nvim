@@ -1,20 +1,22 @@
 return {
         {
                 "folke/snacks.nvim",
-		opts = {
-			picker = {},
-			lazygit = {},
-			git = {
-				env = { GIT_PAGER = "cat" },
-			},
-			terminal = {},
-		},
+                opts = {
+                        picker = {},
+                        lazygit = {},
+                        git = {
+                                env = { GIT_PAGER = "cat" },
+                        },
+                        terminal = {},
+                },
                 keys = {
                         -- LSP: Rename the variable under your cursor.
                         -- Most Language Servers support renaming across files, etc.
                         {
                                 "grn",
-                                vim.lsp.buf.rename,
+                                function()
+                                        vim.lsp.buf.rename()
+                                end,
                                 desc = "[R]e[n]ame",
                         },
 
@@ -22,7 +24,9 @@ return {
                         -- or a suggestion from your LSP for this to activate.
                         {
                                 "gra",
-                                vim.lsp.buf.code_action,
+                                function()
+                                        vim.lsp.buf.code_action()
+                                end,
                                 desc = "[G]oto Code [A]ction",
                                 mode = { "n", "x" },
                         },
@@ -61,7 +65,9 @@ return {
                         -- For example, in C this would take you to the header.
                         {
                                 "grD",
-                                vim.lsp.buf.declaration,
+                                function()
+                                        vim.lsp.buf.declaration()
+                                end,
                                 desc = "[G]oto [D]eclaration",
                         },
 

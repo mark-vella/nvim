@@ -1,5 +1,8 @@
 return {
-        { "NMAC427/guess-indent.nvim" },
+        {
+                "NMAC427/guess-indent.nvim",
+                event = "BufReadPost",
+        },
 
         -- `lazydev` configures Lua LSP for your Neovim config, runtime and plugins
         -- used for completion, annotations and signatures of Neovim apis
@@ -17,6 +20,7 @@ return {
         -- Main LSP Configuration
         {
                 "neovim/nvim-lspconfig",
+                event = { "BufReadPre", "BufNewFile" },
                 dependencies = {
                         -- Automatically install LSPs and related tools to stdpath for Neovim
                         -- Mason must be loaded before its dependents so we need to set it up here.
@@ -121,29 +125,32 @@ return {
                                                 })
                                         end
 
-					-- The following code creates a keymap to toggle inlay hints in your
-					-- code, if the language server you are using supports them
-					--
-					-- Inlay hints are enabled by default for supported servers
-					if
-						client
-						and client_supports_method(
-							client,
-							vim.lsp.protocol.Methods.textDocument_inlayHint,
-							event.buf
-						)
-					then
-						-- Enable inlay hints by default
-						vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
+                                        -- The following code creates a keymap to toggle inlay hints in your
+                                        -- code, if the language server you are using supports them
+                                        --
+                                        -- Inlay hints are enabled by default for supported servers
+                                        if
+                                                client
+                                                and client_supports_method(
+                                                        client,
+                                                        vim.lsp.protocol.Methods.textDocument_inlayHint,
+                                                        event.buf
+                                                )
+                                        then
+                                                -- Enable inlay hints by default
+                                                vim.lsp.inlay_hint.enable(
+                                                        true,
+                                                        { bufnr = event.buf }
+                                                )
 
-						map("<leader>th", function()
-							vim.lsp.inlay_hint.enable(
-								not vim.lsp.inlay_hint.is_enabled({
-									bufnr = event.buf,
-								})
-							)
-						end, "[T]oggle Inlay [H]ints")
-					end
+                                                map("<leader>th", function()
+                                                        vim.lsp.inlay_hint.enable(
+                                                                not vim.lsp.inlay_hint.is_enabled({
+                                                                        bufnr = event.buf,
+                                                                })
+                                                        )
+                                                end, "[T]oggle Inlay [H]ints")
+                                        end
                                 end,
                         })
 
@@ -190,51 +197,51 @@ return {
                         --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
                         --  - settings (table): Override the default settings passed when initializing the server.
                         --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
-				-- Inlay hints settings for TypeScript/JavaScript
-				local ts_inlay_hints = {
-					parameterNames = {
-						enabled = "all",
-						suppressWhenArgumentMatchesName = true,
-					},
-					parameterTypes = { enabled = true },
-					variableTypes = {
-						enabled = true,
-						suppressWhenTypeMatchesName = true,
-					},
-					propertyDeclarationTypes = { enabled = true },
-					functionLikeReturnTypes = { enabled = true },
-					enumMemberValues = { enabled = true },
-				}
+                        -- Inlay hints settings for TypeScript/JavaScript
+                        local ts_inlay_hints = {
+                                parameterNames = {
+                                        enabled = "all",
+                                        suppressWhenArgumentMatchesName = true,
+                                },
+                                parameterTypes = { enabled = true },
+                                variableTypes = {
+                                        enabled = true,
+                                        suppressWhenTypeMatchesName = true,
+                                },
+                                propertyDeclarationTypes = { enabled = true },
+                                functionLikeReturnTypes = { enabled = true },
+                                enumMemberValues = { enabled = true },
+                        }
 
-				-- Configure vtsls with inlay hints using vim.lsp.config (Neovim 0.11+)
-				vim.lsp.config("vtsls", {
-					settings = {
-						typescript = {
-							inlayHints = ts_inlay_hints,
-						},
-						javascript = {
-							inlayHints = ts_inlay_hints,
-						},
-					},
-				})
+                        -- Configure vtsls with inlay hints using vim.lsp.config (Neovim 0.11+)
+                        vim.lsp.config("vtsls", {
+                                settings = {
+                                        typescript = {
+                                                inlayHints = ts_inlay_hints,
+                                        },
+                                        javascript = {
+                                                inlayHints = ts_inlay_hints,
+                                        },
+                                },
+                        })
 
-				local servers = {
-					lua_ls = {
-						settings = {
-							Lua = {
-								completion = {
-									callSnippet = "Replace",
-								},
-								diagnostics = {
-									disable = {
-										"missing-fields",
-									},
-								},
-							},
-						},
-					},
-					vtsls = {},
-				}
+                        local servers = {
+                                lua_ls = {
+                                        settings = {
+                                                Lua = {
+                                                        completion = {
+                                                                callSnippet = "Replace",
+                                                        },
+                                                        diagnostics = {
+                                                                disable = {
+                                                                        "missing-fields",
+                                                                },
+                                                        },
+                                                },
+                                        },
+                                },
+                                vtsls = {},
+                        }
 
                         -- Ensure the servers and tools above are installed
                         --
@@ -357,7 +364,7 @@ return {
         -- Autocompletion
         {
                 "saghen/blink.cmp",
-                event = "VimEnter",
+                event = "InsertEnter",
                 version = "1.*",
                 dependencies = {
                         -- Snippet Engine
