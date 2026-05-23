@@ -19,6 +19,7 @@ return {
                                         "gitignore",
                                         "go",
                                         "html",
+                                        "astro",
                                         "hurl",
                                         "javascript",
                                         "jsx",

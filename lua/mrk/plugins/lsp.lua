@@ -225,6 +225,12 @@ return {
                                 },
                         })
 
+                        -- Oxfmt language server. Install with: npm i -g oxfmt
+                        vim.lsp.config("oxfmt", {
+                                capabilities = capabilities,
+                        })
+                        vim.lsp.enable("oxfmt")
+
                         local servers = {
                                 lua_ls = {
                                         settings = {
@@ -241,6 +247,7 @@ return {
                                         },
                                 },
                                 vtsls = {},
+                                astro = {},
                         }
 
                         -- Ensure the servers and tools above are installed
@@ -261,6 +268,7 @@ return {
                                 "stylua",
                                 "vtsls",
                                 "prettier",
+                                "astro",
                                 "eslint-lsp",
                                 "docker-compose-language-service",
                                 "docker-language-server",
@@ -329,11 +337,25 @@ return {
 
                         local formatters_by_ft = {
                                 lua = { "stylua" },
-                                typescript = { "prettier" },
-                                tsx = { "prettier" },
-                                javascript = { "prettier" },
-                                jsx = { "prettier" },
-                                json = { "prettier" },
+                                typescript = { "oxfmt" },
+                                typescriptreact = { "oxfmt" },
+                                tsx = { "oxfmt" },
+                                javascript = { "oxfmt" },
+                                javascriptreact = { "oxfmt" },
+                                jsx = { "oxfmt" },
+                                json = { "oxfmt" },
+                                jsonc = { "oxfmt" },
+                                json5 = { "oxfmt" },
+                                yaml = { "oxfmt" },
+                                html = { "oxfmt" },
+                                vue = { "oxfmt" },
+                                css = { "oxfmt" },
+                                scss = { "oxfmt" },
+                                less = { "oxfmt" },
+                                graphql = { "oxfmt" },
+                                markdown = { "oxfmt" },
+                                mdx = { "oxfmt" },
+                                astro = { "prettier" },
                         }
 
                         if has_go then

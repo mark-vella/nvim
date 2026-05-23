@@ -1,3 +1,10 @@
+-- Register Astro filetype
+vim.filetype.add({
+	extension = {
+		astro = "astro",
+	},
+})
+
 -- Highlight selection when yanking text
 vim.api.nvim_create_autocmd("TextYankPost", {
         desc = "Highlight selection when yanking text",
