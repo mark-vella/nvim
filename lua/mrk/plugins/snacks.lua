@@ -149,13 +149,6 @@ return {
                                 end,
                                 desc = "[f]ind [c]onfig File",
                         },
-                        {
-                                "<leader>sf",
-                                function()
-                                        Snacks.picker.git_files()
-                                end,
-                                desc = "[s]earch [f]iles",
-                        },
                         -- {
                         --         "<leader>fg",
                         --         function()
@@ -178,21 +171,6 @@ return {
                                         Snacks.picker.lines()
                                 end,
                                 desc = "buffer lines",
-                        },
-                        {
-                                "<leader>sg",
-                                function()
-                                        Snacks.picker.grep()
-                                end,
-                                desc = "[s]earch via [g]rep",
-                        },
-                        {
-                                "<leader>sw",
-                                function()
-                                        Snacks.picker.grep_word()
-                                end,
-                                desc = "[s]earch for [w]ord",
-                                mode = { "n", "x" },
                         },
                         -- search
                         {
