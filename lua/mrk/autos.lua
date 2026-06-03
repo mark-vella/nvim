@@ -14,19 +14,22 @@ vim.api.nvim_create_autocmd("TextYankPost", {
         end,
 })
 
--- Persist theme on change
-vim.api.nvim_create_autocmd("ColorScheme", {
-        group = vim.api.nvim_create_augroup("mrk-theme-persist", { clear = true }),
-        callback = function()
-                local theme = vim.g.colors_name
+-- Persist manually selected themes outside Omarchy. On Omarchy, the OS theme is the
+-- source of truth via ~/.config/omarchy/current/theme/neovim.lua.
+if not vim.g.mrk_using_omarchy_theme then
+        vim.api.nvim_create_autocmd("ColorScheme", {
+                group = vim.api.nvim_create_augroup("mrk-theme-persist", { clear = true }),
+                callback = function()
+                        local theme = vim.g.colors_name
 
-                if theme then
-                        local file = io.open(vim.fn.stdpath("data") .. "/last_theme.txt", "w")
+                        if theme then
+                                local file = io.open(vim.fn.stdpath("data") .. "/last_theme.txt", "w")
 
-                        if file then
-                                file:write(theme)
-                                file:close()
+                                if file then
+                                        file:write(theme)
+                                        file:close()
+                                end
                         end
-                end
-        end,
-})
+                end,
+        })
+end

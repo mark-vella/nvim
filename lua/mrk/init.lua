@@ -1,21 +1,30 @@
-require("mrk.opts")
-require("mrk.maps")
-require("mrk.autos")
+local omarchy_theme_file = vim.fn.expand("~/.config/omarchy/current/theme/neovim.lua")
+local using_omarchy_theme = vim.fn.filereadable(omarchy_theme_file) == 1
+
+vim.g.mrk_using_omarchy_theme = using_omarchy_theme
+vim.g.mrk_omarchy_theme_file = omarchy_theme_file
 
 local theme_file = vim.fn.stdpath("data") .. "/last_theme.txt"
 local active_theme
-local f = io.open(theme_file, "r")
 
-if f then
-        active_theme = vim.trim(f:read("*all") or "")
-        f:close()
+if not using_omarchy_theme then
+        local f = io.open(theme_file, "r")
 
-        if active_theme == "" then
-                active_theme = nil
+        if f then
+                active_theme = vim.trim(f:read("*all") or "")
+                f:close()
+
+                if active_theme == "" then
+                        active_theme = nil
+                end
         end
 end
 
 vim.g.mrk_active_theme = active_theme
+
+require("mrk.opts")
+require("mrk.maps")
+require("mrk.autos")
 
 -- Install `lazy.nvim` package manager
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -54,6 +63,6 @@ require("lazy").setup({
         },
 })
 
-if active_theme and vim.g.colors_name ~= active_theme then
+if not using_omarchy_theme and active_theme and vim.g.colors_name ~= active_theme then
         pcall(vim.cmd.colorscheme, active_theme)
 end
