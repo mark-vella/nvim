@@ -5,6 +5,14 @@ local URL = "http://127.0.0.1:" .. PORT
 local hostname = (vim.uv.os_gethostname and vim.uv.os_gethostname()) or vim.uv.os_uname().nodename
 hostname = hostname:gsub("[^%w._-]", "_")
 
+-- This lifecycle originally assumed Linux: it reads process identity from procfs
+-- (/proc/<pid>/{stat,exe,cmdline,environ} and boot_id) and uses Linux fcntl(2)
+-- flag values. macOS has neither, so the OS-specific primitives below (boot_id,
+-- process_start_time, proc_*, the fcntl/errno constants, and the watchdog's
+-- proc_start) branch on `is_macos` and use libproc/sysctl/ps. Everything else,
+-- including the shared-server lock/lease/daemon lifecycle, is identical on both.
+local is_macos = vim.uv.os_uname().sysname == "Darwin"
+
 local state_dir = vim.fn.stdpath("state") .. "/mrk/cursortab/" .. hostname
 if PORT ~= 8000 then
         state_dir = state_dir .. "/port-" .. PORT
@@ -19,10 +27,23 @@ local lock_path = state_dir .. "/state.lock"
 local editor_pid = vim.uv.os_getpid()
 local boot_id = ""
 do
-        local file = io.open("/proc/sys/kernel/random/boot_id", "rb")
-        if file then
-                boot_id = vim.trim(file:read("*a") or "")
-                file:close()
+        if is_macos then
+                -- No /proc; kern.boottime is a stable identifier for this boot.
+                local handle = io.popen("/usr/sbin/sysctl -n kern.boottime 2>/dev/null")
+                if handle then
+                        local value = handle:read("*a") or ""
+                        handle:close()
+                        local seconds = value:match("sec%s*=%s*(%d+)")
+                        if seconds then
+                                boot_id = "boottime-" .. seconds
+                        end
+                end
+        else
+                local file = io.open("/proc/sys/kernel/random/boot_id", "rb")
+                if file then
+                        boot_id = vim.trim(file:read("*a") or "")
+                        file:close()
+                end
         end
 end
 if boot_id == "" then
@@ -30,6 +51,21 @@ if boot_id == "" then
 end
 
 local function process_start_time(pid)
+        if is_macos then
+                -- No procfs. `ps -o lstart=` is stable per process instance and is
+                -- exactly what the shell watchdog computes, so the two always agree.
+                local handle = io.popen("ps -o lstart= -p " .. tonumber(pid) .. " 2>/dev/null")
+                if not handle then
+                        return nil
+                end
+                local started = (handle:read("*a") or ""):gsub("[\r\n]", "")
+                handle:close()
+                if started == "" then
+                        return nil
+                end
+                return started
+        end
+
         local file = io.open("/proc/" .. pid .. "/stat", "rb")
         if not file then
                 return nil
@@ -63,7 +99,11 @@ local session_token = previous_lifecycle and previous_lifecycle.pid == editor_pi
         or vim.fn.sha256(table.concat({ boot_id, editor_pid, editor_start_time, vim.uv.hrtime() }, ":")):sub(1, 16)
 local session_id = previous_lifecycle and previous_lifecycle.pid == editor_pid
                 and previous_lifecycle.session_id
-        or table.concat({ editor_pid, editor_start_time, session_token }, "-")
+        -- session_token already encodes editor_start_time, so it alone keeps this
+        -- unique. Keep start_time out of the id: it becomes the daemon dir name,
+        -- and on macOS a start_time string would push the daemon's unix socket
+        -- path past the ~104-byte sun_path limit, so bind() would fail.
+        or table.concat({ editor_pid, session_token }, "-")
 local lease_path = lease_dir .. "/" .. session_id .. ".lease"
 local daemon_state_dir = daemon_root .. "/" .. session_id
 local daemon_owner_path = daemon_state_dir .. "/owner.json"
@@ -217,26 +257,36 @@ end
 
 local ffi = require("ffi")
 ffi.cdef([[
-        int open(const char *path, int flags, int mode);
+        int open(const char *path, int flags, ...);
         int flock(int fd, int operation);
         int close(int fd);
 ]])
+if is_macos then
+        -- libproc/sysctl provide the process identity that /proc gives on Linux.
+        ffi.cdef([[
+                int proc_pidpath(int pid, void *buffer, uint32_t buffersize);
+                int sysctl(int *name, unsigned int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
+        ]])
+end
 
--- Linux open(2)/flock(2) constants. O_CLOEXEC is essential because model and
--- daemon jobs are spawned while holding this lock and must not inherit it.
+-- open(2)/flock(2) constants. O_CLOEXEC is essential because model and daemon
+-- jobs are spawned while holding this lock and must not inherit it. The open
+-- flags and EAGAIN differ on macOS (BSD values); flock/EINTR are the same.
 local O_RDWR = 2
-local O_CREAT = 64
-local O_CLOEXEC = 524288
+local O_CREAT = is_macos and 0x0200 or 0x40
+local O_CLOEXEC = is_macos and 0x1000000 or 0x80000
 local LOCK_EX = 2
 local LOCK_NB = 4
 local LOCK_UN = 8
-local EAGAIN = 11
+local EAGAIN = is_macos and 35 or 11
 local EINTR = 4
 local lock_timeout_ms = tonumber(vim.env.CURSORTAB_TEST_LOCK_TIMEOUT_MS) or 10000
 
 local function acquire_host_lock()
         ensure_state_dir()
-        local fd = ffi.C.open(lock_path, O_RDWR + O_CREAT + O_CLOEXEC, 384) -- 0600
+        -- mode must be a typed int: open(2) is variadic, and a bare Lua number
+        -- is passed as a double, which the macOS arm64 varargs ABI reads wrong.
+        local fd = ffi.C.open(lock_path, O_RDWR + O_CREAT + O_CLOEXEC, ffi.new("int", 384)) -- 0600
         if fd < 0 then
                 local errno = ffi.errno()
                 local hint = errno == 21 and " (remove the legacy state.lock directory once no old Neovim is using it)"
@@ -328,11 +378,87 @@ local function remove_server_state_unlocked(expected)
         end
 end
 
+-- macOS process identity. KERN_PROCARGS2 returns argc, the executable path,
+-- argv, then the environment as NUL-separated strings; proc_pidpath returns the
+-- executable path. Together they replace /proc/<pid>/{exe,cmdline,environ}.
+local CTL_KERN, KERN_ARGMAX, KERN_PROCARGS2 = 1, 8, 49
+local mac_argmax
+local function mac_kern_argmax()
+        if mac_argmax then
+                return mac_argmax
+        end
+        local name = ffi.new("int[2]", { CTL_KERN, KERN_ARGMAX })
+        local value = ffi.new("int[1]")
+        local length = ffi.new("size_t[1]", ffi.sizeof("int"))
+        mac_argmax = (ffi.C.sysctl(name, 2, value, length, nil, 0) == 0) and value[0] or 262144
+        return mac_argmax
+end
+
+local function mac_proc_argv_environ(pid)
+        local size = mac_kern_argmax()
+        local buffer = ffi.new("char[?]", size)
+        local length = ffi.new("size_t[1]", size)
+        local name = ffi.new("int[3]", { CTL_KERN, KERN_PROCARGS2, tonumber(pid) })
+        if ffi.C.sysctl(name, 3, buffer, length, nil, 0) ~= 0 then
+                return {}, {}
+        end
+        local raw = ffi.string(buffer, tonumber(length[0]))
+        if #raw < 4 then
+                return {}, {}
+        end
+        local argc = raw:byte(1) + raw:byte(2) * 256 + raw:byte(3) * 65536 + raw:byte(4) * 16777216
+        local position = 5
+        local terminator = raw:find("\0", position, true) -- executable path
+        if not terminator then
+                return {}, {}
+        end
+        position = terminator + 1
+        while position <= #raw and raw:byte(position) == 0 do -- padding before argv
+                position = position + 1
+        end
+        local arguments = {}
+        for _ = 1, argc do
+                local stop = raw:find("\0", position, true)
+                if not stop then
+                        break
+                end
+                table.insert(arguments, raw:sub(position, stop - 1))
+                position = stop + 1
+        end
+        while position <= #raw and raw:byte(position) == 0 do -- padding before env
+                position = position + 1
+        end
+        local environment = {}
+        while position <= #raw do
+                local stop = raw:find("\0", position, true)
+                if not stop then
+                        break
+                end
+                if stop > position then
+                        table.insert(environment, raw:sub(position, stop - 1))
+                end
+                position = stop + 1
+        end
+        return arguments, environment
+end
+
 local function proc_executable(pid)
+        if is_macos then
+                local buffer = ffi.new("char[4096]")
+                local length = ffi.C.proc_pidpath(pid, buffer, 4096)
+                if length <= 0 then
+                        return nil
+                end
+                local path = ffi.string(buffer, length)
+                return vim.uv.fs_realpath(path) or path
+        end
         return vim.uv.fs_realpath("/proc/" .. pid .. "/exe")
 end
 
 local function proc_arguments(pid)
+        if is_macos then
+                return (mac_proc_argv_environ(pid))
+        end
         local command_line = read_text("/proc/" .. pid .. "/cmdline")
         local arguments = {}
         for argument in (command_line or ""):gmatch("([^%z]+)") do
@@ -342,8 +468,17 @@ local function proc_arguments(pid)
 end
 
 local function proc_environment(pid, name)
-        local environment = read_text("/proc/" .. pid .. "/environ") or ""
         local prefix = name .. "="
+        if is_macos then
+                local _, environment = mac_proc_argv_environ(pid)
+                for _, item in ipairs(environment) do
+                        if vim.startswith(item, prefix) then
+                                return item:sub(#prefix + 1)
+                        end
+                end
+                return nil
+        end
+        local environment = read_text("/proc/" .. pid .. "/environ") or ""
         for item in environment:gmatch("([^%z]+)") do
                 if vim.startswith(item, prefix) then
                         return item:sub(#prefix + 1)
@@ -809,6 +944,16 @@ local function start_cursortab(profile, activation_generation, announce)
                 require("cursortab.config").setup(config)
                 daemon.set_enabled(true)
         end
+
+        -- CursorTab computes a buffer's skip-state only on BufEnter/WinEnter and
+        -- defaults it to "skip". Setup runs here, after the model is healthy, so
+        -- the buffer already open at startup never gets recomputed and
+        -- daemon.send_event silently drops its text_changed events. Recompute the
+        -- current buffer now so completions work without switching buffers first.
+        pcall(function()
+                require("cursortab.buffer").update_state()
+        end)
+
         if not force_start_daemon_now(daemon) then
                 last_error = "CursorTab daemon could not be launched."
                 schedule_recovery()
@@ -847,11 +992,18 @@ end
 local function start_watchdog(state)
         -- A detached watchdog covers crashes/SIGKILL, when VimLeavePre cannot remove
         -- the final lease. Two empty scans avoid racing an atomic lease hand-off.
-        local script = [[
-server_pid=$1
-server_start=$2
-lease_dir=$3
-empty_scans=0
+        local proc_start_definition
+        if is_macos then
+                -- ps lstart matches Lua's process_start_time byte-for-byte.
+                proc_start_definition = [[
+proc_start() {
+        started=$(ps -o lstart= -p "$1" 2>/dev/null)
+        [ -n "$started" ] || return 1
+        printf '%s\n' "$started"
+}
+]]
+        else
+                proc_start_definition = [[
 proc_start() {
         [ -r "/proc/$1/stat" ] || return 1
         stat=$(cat "/proc/$1/stat") || return 1
@@ -860,6 +1012,13 @@ proc_start() {
         shift 19
         printf '%s\n' "$1"
 }
+]]
+        end
+        local script = proc_start_definition .. [[
+server_pid=$1
+server_start=$2
+lease_dir=$3
+empty_scans=0
 while [ "$(proc_start "$server_pid")" = "$server_start" ]; do
         live=0
         for lease in "$lease_dir"/*.lease; do
