@@ -232,7 +232,7 @@ return {
                         {
                                 "<leader>tt",
                                 function()
-                                        Snacks.picker.colorschemes()
+                                        MrkTheme.pick()
                                 end,
                                 desc = "search [t]hemes",
                         },
