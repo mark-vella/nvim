@@ -128,7 +128,7 @@ return {
                                         -- The following code creates a keymap to toggle inlay hints in your
                                         -- code, if the language server you are using supports them
                                         --
-                                        -- Inlay hints are enabled by default for supported servers
+                                        -- Inlay hints are disabled by default
                                         if
                                                 client
                                                 and client_supports_method(
@@ -137,12 +137,6 @@ return {
                                                         event.buf
                                                 )
                                         then
-                                                -- Enable inlay hints by default
-                                                vim.lsp.inlay_hint.enable(
-                                                        true,
-                                                        { bufnr = event.buf }
-                                                )
-
                                                 map("<leader>th", function()
                                                         vim.lsp.inlay_hint.enable(
                                                                 not vim.lsp.inlay_hint.is_enabled({
@@ -213,8 +207,8 @@ return {
                                 enumMemberValues = { enabled = true },
                         }
 
-                        -- Configure vtsls with inlay hints using vim.lsp.config (Neovim 0.11+)
-                        vim.lsp.config("vtsls", {
+                        -- Configure tsc (TypeScript 7 native LSP) with inlay hints
+                        vim.lsp.config("tsc", {
                                 settings = {
                                         typescript = {
                                                 inlayHints = ts_inlay_hints,
@@ -246,7 +240,7 @@ return {
                                                 },
                                         },
                                 },
-                                vtsls = {},
+                                tsc = {},
                                 astro = {},
                         }
 
@@ -266,7 +260,6 @@ return {
                         local ensure_installed = vim.tbl_keys(servers or {})
                         vim.list_extend(ensure_installed, {
                                 "stylua",
-                                "vtsls",
                                 "prettier",
                                 "astro",
                                 "eslint-lsp",
