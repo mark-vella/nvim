@@ -4,7 +4,15 @@ return {
                 build = function()
                         require("fff.download").download_or_build_binary()
                 end,
-                lazy = false,
+                cmd = {
+                        "FFFFind",
+                        "FFFScan",
+                        "FFFRefreshGit",
+                        "FFFClearCache",
+                        "FFFHealth",
+                        "FFFDebug",
+                        "FFFOpenLog",
+                },
                 opts = {
                         lazy_sync = true,
                         debug = {

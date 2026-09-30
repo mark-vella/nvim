@@ -96,10 +96,12 @@ local previous_lifecycle = lifecycle_registry[state_dir]
 local editor_start_time = process_start_time(editor_pid) or tostring(vim.uv.hrtime())
 local session_token = previous_lifecycle and previous_lifecycle.pid == editor_pid
                 and previous_lifecycle.session_token
-        or vim.fn.sha256(table.concat({ boot_id, editor_pid, editor_start_time, vim.uv.hrtime() }, ":")):sub(1, 16)
+        -- Random rather than a hash of this process, as the first vim.fn.sha256() call runs a
+        -- ~3ms self-test on every startup
+        or ("%02x"):rep(8):format(vim.uv.random(8):byte(1, 8))
 local session_id = previous_lifecycle and previous_lifecycle.pid == editor_pid
                 and previous_lifecycle.session_id
-        -- session_token already encodes editor_start_time, so it alone keeps this
+        -- session_token is random, so it alone keeps this
         -- unique. Keep start_time out of the id: it becomes the daemon dir name,
         -- and on macOS a start_time string would push the daemon's unix socket
         -- path past the ~104-byte sun_path limit, so bind() would fail.

@@ -17,6 +17,14 @@ return {
                 },
         },
 
+        -- Useful status updates for LSP.
+        {
+                "j-hui/fidget.nvim",
+                event = "LspAttach",
+                cmd = "Fidget",
+                opts = {},
+        },
+
         -- Main LSP Configuration
         {
                 "neovim/nvim-lspconfig",
@@ -28,11 +36,9 @@ return {
                         "mason-org/mason-lspconfig.nvim",
                         "WhoIsSethDaniel/mason-tool-installer.nvim",
 
-                        -- Useful status updates for LSP.
-                        { "j-hui/fidget.nvim", opts = {} },
-
-                        -- Allows extra capabilities provided by blink.cmp
-                        "saghen/blink.cmp",
+                        -- Loaded here rather than on its own `ft`, which would re-run FileType for the
+                        -- first Lua buffer
+                        "folke/lazydev.nvim",
                 },
                 config = function()
                         --  This function gets run when an LSP attaches to a particular buffer.
@@ -178,12 +184,6 @@ return {
                                 },
                         })
 
-                        -- LSP servers and clients are able to communicate to each other what features they support.
-                        --  By default, Neovim doesn't support everything that is in the LSP specification.
-                        --  When you add blink.cmp, luasnip, etc. Neovim now has *more* capabilities.
-                        --  So, we create new capabilities with blink.cmp, and then broadcast that to the servers.
-                        local capabilities = require("blink.cmp").get_lsp_capabilities()
-
                         -- Enable the following language servers
                         --  Add any additional override configuration in the following tables. Available keys are:
                         --  - cmd (table): Override the default command used to start the server
@@ -218,12 +218,6 @@ return {
                                         },
                                 },
                         })
-
-                        -- Oxfmt language server. Install with: npm i -g oxfmt
-                        vim.lsp.config("oxfmt", {
-                                capabilities = capabilities,
-                        })
-                        vim.lsp.enable("oxfmt")
 
                         local servers = {
                                 lua_ls = {
@@ -285,25 +279,55 @@ return {
                                 ensure_installed = ensure_installed,
                         })
 
-                        require("mason-lspconfig").setup({
-                                ensure_installed = {}, -- explicitly set to an empty table (we populate installs via mason-tool-installer)
-                                automatic_installation = false,
-                                handlers = {
-                                        function(server_name)
-                                                local server = servers[server_name] or {}
-                                                -- This handles overriding only values explicitly passed
-                                                -- by the server configuration above. Useful when disabling
-                                                -- certain features of an LSP (for example, turning off formatting for ts_ls)
-                                                server.capabilities = vim.tbl_deep_extend(
-                                                        "force",
-                                                        {},
-                                                        capabilities,
-                                                        server.capabilities or {}
-                                                )
-                                                require("lspconfig")[server_name].setup(server)
+                        -- Loading blink.cmp (and LuaSnip with it) and enabling the servers, which reads the
+                        -- whole mason registry, can wait until the first screen has been drawn. Servers
+                        -- enabled before VimEnter would skip buffers that already have a filetype.
+                        local function setup_servers()
+                                -- LSP servers and clients are able to communicate to each other what features they support.
+                                --  By default, Neovim doesn't support everything that is in the LSP specification.
+                                --  When you add blink.cmp, luasnip, etc. Neovim now has *more* capabilities.
+                                --  So, we create new capabilities with blink.cmp, and then broadcast that to the servers.
+                                local capabilities = require("blink.cmp").get_lsp_capabilities()
+
+                                -- Oxfmt language server. Install with: npm i -g oxfmt
+                                vim.lsp.config("oxfmt", {
+                                        capabilities = capabilities,
+                                })
+                                vim.lsp.enable("oxfmt")
+
+                                require("mason-lspconfig").setup({
+                                        ensure_installed = {}, -- explicitly set to an empty table (we populate installs via mason-tool-installer)
+                                        automatic_installation = false,
+                                        handlers = {
+                                                function(server_name)
+                                                        local server = servers[server_name] or {}
+                                                        -- This handles overriding only values explicitly passed
+                                                        -- by the server configuration above. Useful when disabling
+                                                        -- certain features of an LSP (for example, turning off formatting for ts_ls)
+                                                        server.capabilities = vim.tbl_deep_extend(
+                                                                "force",
+                                                                {},
+                                                                capabilities,
+                                                                server.capabilities or {}
+                                                        )
+                                                        require("lspconfig")[server_name].setup(
+                                                                server
+                                                        )
+                                                end,
+                                        },
+                                })
+                        end
+
+                        if vim.v.vim_did_enter == 1 then
+                                vim.schedule(setup_servers)
+                        else
+                                vim.api.nvim_create_autocmd("VimEnter", {
+                                        once = true,
+                                        callback = function()
+                                                vim.schedule(setup_servers)
                                         end,
-                                },
-                        })
+                                })
+                        end
                 end,
         },
 
