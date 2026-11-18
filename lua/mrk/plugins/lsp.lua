@@ -61,22 +61,6 @@ return {
                                                 })
                                         end
 
-                                        -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
-                                        ---@param client vim.lsp.Client
-                                        ---@param method vim.lsp.protocol.Method
-                                        ---@param bufnr? integer some lsp support methods only in specific files
-                                        ---@return boolean
-                                        local function client_supports_method(client, method, bufnr)
-                                                if vim.fn.has("nvim-0.11") == 1 then
-                                                        return client:supports_method(method, bufnr)
-                                                else
-                                                        return client.supports_method(
-                                                                method,
-                                                                { bufnr = bufnr }
-                                                        )
-                                                end
-                                        end
-
                                         -- The following two autocommands are used to highlight references of the
                                         -- word under your cursor when your cursor rests there for a little while.
                                         --    See `:help CursorHold` for information about when this is executed
@@ -87,8 +71,7 @@ return {
 
                                         if
                                                 client
-                                                and client_supports_method(
-                                                        client,
+                                                and client:supports_method(
                                                         vim.lsp.protocol.Methods.textDocument_documentHighlight,
                                                         event.buf
                                                 )
@@ -137,8 +120,7 @@ return {
                                         -- Inlay hints are disabled by default
                                         if
                                                 client
-                                                and client_supports_method(
-                                                        client,
+                                                and client:supports_method(
                                                         vim.lsp.protocol.Methods.textDocument_inlayHint,
                                                         event.buf
                                                 )
@@ -172,26 +154,15 @@ return {
                                 virtual_text = {
                                         source = "if_many",
                                         spacing = 2,
-                                        format = function(diagnostic)
-                                                local diagnostic_message = {
-                                                        [vim.diagnostic.severity.ERROR] = diagnostic.message,
-                                                        [vim.diagnostic.severity.WARN] = diagnostic.message,
-                                                        [vim.diagnostic.severity.INFO] = diagnostic.message,
-                                                        [vim.diagnostic.severity.HINT] = diagnostic.message,
-                                                }
-                                                return diagnostic_message[diagnostic.severity]
-                                        end,
                                 },
                         })
 
-                        -- Enable the following language servers
-                        --  Add any additional override configuration in the following tables. Available keys are:
-                        --  - cmd (table): Override the default command used to start the server
-                        --  - filetypes (table): Override the default list of associated filetypes for the server
-                        --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
-                        --  - settings (table): Override the default settings passed when initializing the server.
-                        --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
-                        -- Inlay hints settings for TypeScript/JavaScript
+                        local function nearest_bin(root_dir, path)
+                                local found = root_dir
+                                        and vim.fs.find(path, { path = root_dir, upward = true })[1]
+                                return found and vim.fn.executable(found) == 1 and found or nil
+                        end
+
                         local ts_inlay_hints = {
                                 parameterNames = {
                                         enabled = "all",
@@ -207,8 +178,21 @@ return {
                                 enumMemberValues = { enabled = true },
                         }
 
-                        -- Configure tsc (TypeScript 7 native LSP) with inlay hints
+                        -- The tsrs tsdk carries the effect-tsgo patch; the plain TypeScript binary reports no Effect diagnostics.
                         vim.lsp.config("tsc", {
+                                cmd = function(dispatchers, config)
+                                        local bin = nearest_bin(
+                                                config.root_dir,
+                                                "node_modules/tsrs/tsdk/tsgo"
+                                        ) or nearest_bin(
+                                                config.root_dir,
+                                                "node_modules/.bin/tsc"
+                                        ) or "tsc"
+                                        return vim.lsp.rpc.start(
+                                                { bin, "--lsp", "--stdio" },
+                                                dispatchers
+                                        )
+                                end,
                                 settings = {
                                         typescript = {
                                                 inlayHints = ts_inlay_hints,
@@ -219,51 +203,64 @@ return {
                                 },
                         })
 
-                        local servers = {
-                                lua_ls = {
-                                        settings = {
-                                                Lua = {
-                                                        completion = {
-                                                                callSnippet = "Replace",
-                                                        },
-                                                        diagnostics = {
-                                                                disable = {
-                                                                        "missing-fields",
-                                                                },
-                                                        },
-                                                },
+                        -- lspconfig only looks in the package root's node_modules, which a pnpm workspace package lacks.
+                        vim.lsp.config("oxlint", {
+                                cmd = function(dispatchers, config)
+                                        local bin = nearest_bin(
+                                                config.root_dir,
+                                                "node_modules/.bin/oxlint"
+                                        ) or "oxlint"
+                                        return vim.lsp.rpc.start({ bin, "--lsp" }, dispatchers)
+                                end,
+                        })
+
+                        vim.lsp.config("tailwindcss", {
+                                workspace_required = true,
+                                root_dir = function(bufnr, on_dir)
+                                        local fname = vim.api.nvim_buf_get_name(bufnr)
+                                        local markers =
+                                                require("lspconfig.util").insert_package_json(
+                                                        {},
+                                                        "tailwindcss",
+                                                        fname
+                                                )
+                                        local found = vim.fs.find(
+                                                markers,
+                                                { path = fname, upward = true }
+                                        )[1]
+                                        if found then
+                                                on_dir(vim.fs.dirname(found))
+                                        end
+                                end,
+                        })
+
+                        vim.lsp.config("lua_ls", {
+                                settings = {
+                                        Lua = {
+                                                completion = { callSnippet = "Replace" },
+                                                diagnostics = { disable = { "missing-fields" } },
                                         },
                                 },
-                                tsc = {},
-                                astro = {},
-                        }
+                        })
 
-                        -- Ensure the servers and tools above are installed
-                        --
-                        -- To check the current status of installed tools and/or manually install
-                        -- other tools, you can run
-                        --    :Mason
-                        --
-                        -- `mason` had to be setup earlier: to configure its options see the
-                        -- `dependencies` table for `nvim-lspconfig` above.
-                        --
-                        -- You can add other tools here that you want Mason to install
-                        -- for you, so that they are available from within Neovim.
                         local has_go = vim.fn.executable("go") == 1
 
-                        local ensure_installed = vim.tbl_keys(servers or {})
-                        vim.list_extend(ensure_installed, {
+                        local ensure_installed = {
+                                "lua-language-server",
+                                "tsc",
+                                "astro-language-server",
+                                "oxlint",
+                                "oxfmt",
+                                "tailwindcss-language-server",
                                 "stylua",
                                 "prettier",
-                                "astro",
-                                "eslint-lsp",
                                 "docker-compose-language-service",
                                 "docker-language-server",
                                 "dockerfile-language-server",
                                 "gh-actions-language-server",
                                 "circleci-yaml-language-server",
                                 "yaml-language-server",
-                        })
+                        }
 
                         if has_go then
                                 vim.list_extend(ensure_installed, {
@@ -279,42 +276,15 @@ return {
                                 ensure_installed = ensure_installed,
                         })
 
-                        -- Loading blink.cmp (and LuaSnip with it) and enabling the servers, which reads the
-                        -- whole mason registry, can wait until the first screen has been drawn. Servers
-                        -- enabled before VimEnter would skip buffers that already have a filetype.
+                        -- Enabling the servers reads the whole mason registry, so it waits for the first
+                        -- screen. Servers enabled before VimEnter would skip buffers that already have a filetype.
                         local function setup_servers()
-                                -- LSP servers and clients are able to communicate to each other what features they support.
-                                --  By default, Neovim doesn't support everything that is in the LSP specification.
-                                --  When you add blink.cmp, luasnip, etc. Neovim now has *more* capabilities.
-                                --  So, we create new capabilities with blink.cmp, and then broadcast that to the servers.
-                                local capabilities = require("blink.cmp").get_lsp_capabilities()
-
-                                -- Oxfmt language server. Install with: npm i -g oxfmt
-                                vim.lsp.config("oxfmt", {
-                                        capabilities = capabilities,
+                                vim.lsp.config("*", {
+                                        capabilities = require("blink.cmp").get_lsp_capabilities(),
                                 })
-                                vim.lsp.enable("oxfmt")
 
                                 require("mason-lspconfig").setup({
-                                        ensure_installed = {}, -- explicitly set to an empty table (we populate installs via mason-tool-installer)
-                                        automatic_installation = false,
-                                        handlers = {
-                                                function(server_name)
-                                                        local server = servers[server_name] or {}
-                                                        -- This handles overriding only values explicitly passed
-                                                        -- by the server configuration above. Useful when disabling
-                                                        -- certain features of an LSP (for example, turning off formatting for ts_ls)
-                                                        server.capabilities = vim.tbl_deep_extend(
-                                                                "force",
-                                                                {},
-                                                                capabilities,
-                                                                server.capabilities or {}
-                                                        )
-                                                        require("lspconfig")[server_name].setup(
-                                                                server
-                                                        )
-                                                end,
-                                        },
+                                        automatic_enable = { exclude = { "eslint", "stylua" } },
                                 })
                         end
 
@@ -492,14 +462,7 @@ return {
 
                         snippets = { preset = "luasnip" },
 
-                        -- Blink.cmp includes an optional, recommended rust fuzzy matcher,
-                        -- which automatically downloads a prebuilt binary when enabled.
-                        --
-                        -- By default, we use the Lua implementation instead, but you may enable
-                        -- the rust implementation via `'prefer_rust_with_warning'`
-                        --
-                        -- See :h blink-cmp-config-fuzzy for more information
-                        fuzzy = { implementation = "lua" },
+                        fuzzy = { implementation = "prefer_rust_with_warning" },
 
                         -- Shows a signature help window while you type arguments for a function
                         signature = { enabled = true },
