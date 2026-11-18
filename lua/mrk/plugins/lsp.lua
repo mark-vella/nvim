@@ -187,6 +187,9 @@ return {
                                         ) or nearest_bin(
                                                 config.root_dir,
                                                 "node_modules/.bin/tsc"
+                                        ) or nearest_bin(
+                                                config.root_dir,
+                                                "node_modules/.bin/tsgo"
                                         ) or "tsc"
                                         return vim.lsp.rpc.start(
                                                 { bin, "--lsp", "--stdio" },
